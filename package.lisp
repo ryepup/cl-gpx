@@ -1,5 +1,4 @@
 ;;; -*- mode: lisp; indent-tabs: nil -*-
 
 (defpackage :cl-gpx
-  (:use :cl)
-  (:export #:test))
+  (:use :cl #:iterate #:alexandria))
