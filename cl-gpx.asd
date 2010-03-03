@@ -4,4 +4,4 @@
   :serial t
   ;; add new files to this list:
   :components ((:file "package") (:file "cl-gpx"))
-  :depends-on (#:iterate #:alexandria #:vecto #:cxml))
+  :depends-on (#:iterate #:alexandria #:vecto #:cxml #:trivial-shell))
