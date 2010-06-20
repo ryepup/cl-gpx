@@ -109,7 +109,8 @@
 
 (defun draw-heat-map (outfile width height gps-file)
   ;;find the min/max bounds of the readings on lat, lon, ele
-  (iter (with gpx = (make-gpx-processer gps-file))
+  (iter (with *print-pretty* = nil)
+	(with gpx = (make-gpx-processer gps-file))
 	(for reading = (funcall gpx))
 	(while reading)
 	(extreming (lat reading) into lat-ex)
@@ -134,6 +135,7 @@
 	     (iter (with counts = (make-array (list width height)
 					      :element-type 'integer
 					      :initial-element 0))
+		   (with flattened-file = (local-resource-path "out.flat.png"))
 		   (for reading in readings)
 		   (for num-readings from 1)
 		   (maximizing (incf (aref counts
@@ -145,11 +147,10 @@
 		    (iter
 		      (with half-width = 32)
 		      (with batch-size = 50)
-		      (with flattened-file = "/home/ryan/out.flat.png")
 		      (with temp-bol = (normalize-blob max-hits))
 		      (for i from 0)
 		      (for idx from 0 to num-readings by batch-size)
-		      (for flatfile = (format nil "/home/ryan/out.flat~a.png" i))
+		      (for flatfile = (local-resource-path (format nil "out.flat~a.png" i)))
 		      (for readings-to-process = (subseq readings idx (min (+ idx batch-size)
 									   num-readings)))
 		      (trivial-shell:shell-command
@@ -171,8 +172,8 @@
 		       (finalize-heat-map flattened-file outfile))))))))))
 
 (defun normalize-blob (max-hits &key
-		       (dotimage "/home/ryan/clickmaps.net/proccesslog/bolilla.png")
-		       (temp-blob-path "/home/ryan/out.bol.png"))
+		       (dotimage (local-resource-path "bolilla.png"))
+		       (temp-blob-path (local-resource-path "out.bol.png")))
   (trivial-shell:shell-command
    (format nil "convert ~a -fill white -colorize ~a% ~a"
 	   dotimage
@@ -181,9 +182,9 @@
   temp-blob-path)
 
 (defun finalize-heat-map (flattened-file out-file &key
-			  (color-file "/home/ryan/clickmaps.net/proccesslog/colors.png")
-			  (negated-file "/home/ryan/negated.png")
-			  (colorized-file "/home/ryan/colorized.png")
+			  (color-file (local-resource-path "colors.png"))
+			  (negated-file (local-resource-path "negated.png"))
+			  (colorized-file (local-resource-path "colorized.png"))
 			  )
   (trivial-shell:shell-command (format nil "convert ~a -negate ~a"
 				       flattened-file negated-file))
@@ -191,4 +192,12 @@
    (format nil "convert ~a -type TruecolorMatte ~a -fx \"v.p{0,u*v.h}\" ~a"
 	   negated-file color-file colorized-file))
   (trivial-shell:shell-command
-   (format nil "convert ~a -channel A -fx \"A*0.50\" ~a" colorized-file out-file)))
+   (format nil "convert ~a -channel A -fx \"A*0.50\" ~a" colorized-file out-file))
+  out-file)
+
+(defun local-resource-path (filename)
+  (let* ((sys (asdf:find-system :cl-gpx))
+	 (fn (alexandria:curry #'asdf:system-relative-pathname sys)))    
+    (format T "untouched")
+    (setf (fdefinition 'local-resource-path) fn)
+    (funcall fn filename)))
